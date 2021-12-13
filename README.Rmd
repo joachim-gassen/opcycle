@@ -1,0 +1,131 @@
+---
+output: github_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE, fig.align = "center")
+library(tidyverse)
+source("code/R/theme_trr.R")
+```
+
+### The Operating Cycle World-Wide
+
+This repository uses Compustat Global data from WRDS to provide some insights into the development of the operating cycle of publicly listed firms. The operating cycle is normally presented in days and reflects how long cash is needed to finance the operating activity of a given firm. It consists of three components:
+
+- Days Payable Outstanding (DPO) = 365 times average Accounts Payable divided by Costs of Goods Sold. How long does it take a firm to pay its trade credit liabilities?
+- Days Inventory Held (DIH) = 365 times average Inventory divided by Costs of Goods Sold. How long is money needed to finance the inventory of a firm?
+- Days Sales Outstanding (DSO) = 365 times average Receivables divided by Sales. How long does it take the customers of a firm to pay their invoices?
+
+Taken together these three measures yield the Operating Cycle = DIH + DSO - DPO. Longer operating cycles generally indicate larger financing needs.
+
+
+### Operating Cycle Across Firms
+
+```{r ReadData}
+smp_win <- readRDS("data/generated/opcycle_sample_win.RDS")
+```
+
+Based on a sample of `r format(nrow(smp_win), big.mark = ",")` observations from `r length(unique(smp_win$loc))` countries covering the period `r min(smp_win$fyear)` to `r max(smp_win$fyear)`, we can get an idea how the operating cycle is distributed across firms.
+
+```{r Hist}
+ggplot(smp_win, aes(x = opcycle)) + 
+  geom_histogram(fill = col_trr266_nightblue) +
+  theme_minimal()
+```
+
+Even though the data is winsorized to the top and bottom percentile, we see quite a range. A sizable fraction of firms have even negative operating cycles meaning that they finance their working capital via trade credit.
+
+How does the operating cycle compare across industries?
+
+```{r Industries}
+ggplot(smp_win, aes(x = ff12_ind, group = ff12_ind, y = opcycle)) + 
+  geom_boxplot(outlier.shape = NA) +
+  ylim(-200, 500) + 
+  labs(x = "", y = "Operating Cycle [days]") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+You see that the Telecom industry has particular short operating cycles, while Manufacting and Health Sectors have longer cycles.
+
+
+### Operating Cycle by Country
+
+How does the operating cycle vary across countries?
+
+```{r Countries}
+df <- smp_win %>%
+  group_by(loc) %>%
+  mutate(loc = sprintf("%s (N = %s)", loc, format(n(), big.mark = ",")))
+
+ggplot(df, aes(x = loc, y = opcycle)) + 
+  geom_boxplot(outlier.shape = NA) +
+  ylim(-250, 650) + 
+  labs(x = "", y = "Operating Cycle [days]") + 
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
+```
+
+Jupp. There is some variation but this might also be caused by varying sample sizes.
+
+### Operating Cycle over Time
+
+How does the operating cycle vary over the years?
+
+```{r OCYears}
+df <- smp_win %>%
+  group_by(fyear) %>%
+  summarise(
+    mn = mean(opcycle),
+    ub = mn + 1.96*sd(opcycle)/sqrt(n()),
+    lb = mn - 1.96*sd(opcycle)/sqrt(n())
+  )
+ggplot(df, aes(x = fyear, y = mn)) + 
+  geom_point(color = col_trr266_nightblue) + 
+  geom_linerange(aes(ymin = lb, ymax = ub)) +
+  labs(x = "", y = "Operating Cycle [days]") + 
+  theme_minimal() 
+```
+
+You can see a decline during the 2000s, a spike during the financial crisis and then an increasing trend in the 2010s. Interesting. How does this compare across the components of the operating cycle?
+
+```{r ComponentYears}
+df <- smp_win %>%
+  select(fyear, DPO = dpo, DIH = dio, DSO = dso) %>%
+  group_by(fyear) %>%
+  pivot_longer(cols = -fyear, names_to = "stat", values_to = "vals") %>%
+  group_by(fyear, stat) %>%
+  summarise(
+    mn = mean(vals),
+    ub = mn + 1.96*sd(vals)/sqrt(n()),
+    lb = mn - 1.96*sd(vals)/sqrt(n())
+  )
+
+ggplot(df, aes(x = fyear, y = mn, group = stat, color = stat)) + 
+  geom_point() + 
+  geom_line() + 
+  geom_linerange(aes(ymin = lb, ymax = ub)) +
+  labs(x = "", y = "Operating Cycle [days]", color = "") + 
+  theme_minimal() +
+  theme(legend.position = "bottom")
+```
+All components are upwards trending, consistent with decreasing cost of capital making companies more willing to invest in working capital.
+
+
+### See for yourself
+
+If you want to explore the data yourself, consider running the below:
+
+```{r ExPanD, eval = FALSE}
+library(ExPanD)
+smp <- readRDS("data/generated/opcycle_sample.RDS")
+conf <- readRDS("data/external/expand_config.RDS")
+
+ExPanD(
+  smp, cs_id = c("gvkey", "conm"), ts_id = "fyear",
+  config_list = conf,
+  title = "Operating Cycle of Publicly-Listed Firms"
+)
+```
+
+For this to work, you need to have WRDS access and source the two files in `code/R` first to generate the sample. See [this repo](https://github.com/trr266/treat) for more details.
