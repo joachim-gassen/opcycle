@@ -25,7 +25,12 @@ generally indicate larger financing needs.
 ### Operating Cycle Across Firms
 
 ``` r
-smp_win <- readRDS("data/generated/opcycle_sample_win.RDS")
+library(tidyverse)
+library(ExPanDaR)
+source("code/R/theme_trr.R")
+
+smp <- readRDS("data/generated/opcycle_sample.rds")
+smp_win <- treat_outliers(smp)
 ```
 
 Based on a sample of 189,664 firm-year observations from 26 countries
@@ -139,9 +144,7 @@ capital making companies more willing to invest in working capital.
 If you want to explore the data yourself, consider running the below:
 
 ``` r
-library(ExPanD)
-smp <- readRDS("data/generated/opcycle_sample.RDS")
-conf <- readRDS("data/external/expand_config.RDS")
+conf <- readRDS("data/external/expand_config.rds")
 
 # This might take a while to start up because of the large sample
 ExPanD(
@@ -151,6 +154,12 @@ ExPanD(
 )
 ```
 
-For this to work, you need to have WRDS access and source the two files
-in `code/R` first to generate the sample. See [this
+For this to work, you need to fork/download the Github repo, have WRDS
+access, configure your logon credentials in `config.csv` and source the
+`pull_wrds.r`and `prepare_data.R`to generate the sample. See [this
 repo](https://github.com/trr266/treat) for more details.
+
+Alternatively, Humboldt students of the Controlling class can simply use
+the data file provided via Moodle and store it in `data/generated` after
+forking/downloading this repo from Github. The code to generate this
+README is in `README.Rmd`. Enjoy!

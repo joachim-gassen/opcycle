@@ -1,16 +1,11 @@
 # --- Header -------------------------------------------------------------------
-# Prepares the "Explore Discretionary Accruals" display 
+# Prepares the WRDS data for the analysis  
 #
 # (C) TRR 266 -  See LICENSE file for details 
 # ------------------------------------------------------------------------------
 library(readr)
 library(dplyr)
-library(tidyr)
 library(ggplot2)
-library(purrr)
-library(modelr)
-library(broom)
-library(lubridate)
 library(ExPanDaR)
 
 mleadlag <- function(x, n, ts_id) {
@@ -79,9 +74,7 @@ if(nrow(dups) > 0) stop(
   "Observations are not identified by gvkey and fyear."
 )
 
-smp_win <- winsorize(smp)
 saveRDS(smp, "data/generated/opcycle_sample.rds")
-saveRDS(smp_win, "data/generated/opcycle_sample_win.rds")
 
 # Use the below to interactively explore the data
 
