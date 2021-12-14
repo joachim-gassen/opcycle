@@ -17,9 +17,10 @@ firm. It consists of three components:
     by Sales. How long does it take the customers of a firm to pay their
     invoices?
 
-Taken together these three measures yield the Operating Cycle = DIH +
-DSO - DPO. Longer operating cycles generally indicate larger financing
-needs.
+Taken together these three measures describe the Operating Cycle and
+yield a measure that is also called Days Working Capital
+*D**W**C* = *D**I**H* + *D**S**O* − *D**P**O*. Longer operating cycles
+generally indicate larger financing needs.
 
 ### Operating Cycle Across Firms
 
@@ -27,13 +28,14 @@ needs.
 smp_win <- readRDS("data/generated/opcycle_sample_win.RDS")
 ```
 
-Based on a sample of 189,664 observations from 26 countries covering the
-period 2000 to 2020, we can get an idea how the operating cycle is
-distributed across firms.
+Based on a sample of 189,664 firm-year observations from 26 countries
+covering the period 2000 to 2020, we can get an idea how the operating
+cycle is distributed across firms.
 
 ``` r
-ggplot(smp_win, aes(x = opcycle)) + 
+ggplot(smp_win, aes(x = dwc)) + 
   geom_histogram(fill = col_trr266_nightblue) +
+  labs(x = "Days Working Capital [days]", y = "Number of firm-years") +
   theme_minimal()
 ```
 
@@ -47,10 +49,10 @@ trade credit.
 How does the operating cycle compare across industries?
 
 ``` r
-ggplot(smp_win, aes(x = ff12_ind, group = ff12_ind, y = opcycle)) + 
+ggplot(smp_win, aes(x = ff12_ind, group = ff12_ind, y = dwc)) + 
   geom_boxplot(outlier.shape = NA) +
   ylim(-200, 500) + 
-  labs(x = "", y = "Operating Cycle [days]") + 
+  labs(x = "", y = "Days Working Capital [days]") + 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -69,10 +71,10 @@ df <- smp_win %>%
   group_by(loc) %>%
   mutate(loc = sprintf("%s (N = %s)", loc, format(n(), big.mark = ",")))
 
-ggplot(df, aes(x = loc, y = opcycle)) + 
+ggplot(df, aes(x = loc, y = dwc)) + 
   geom_boxplot(outlier.shape = NA) +
   ylim(-250, 650) + 
-  labs(x = "", y = "Operating Cycle [days]") + 
+  labs(x = "", y = "Days Working Capital [days]") + 
   theme_minimal() +
   theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust=1))
 ```
@@ -90,14 +92,14 @@ How does the operating cycle vary over the years?
 df <- smp_win %>%
   group_by(fyear) %>%
   summarise(
-    mn = mean(opcycle),
-    ub = mn + 1.96*sd(opcycle)/sqrt(n()),
-    lb = mn - 1.96*sd(opcycle)/sqrt(n())
+    mn = mean(dwc),
+    ub = mn + 1.96*sd(dwc)/sqrt(n()),
+    lb = mn - 1.96*sd(dwc)/sqrt(n())
   )
 ggplot(df, aes(x = fyear, y = mn)) + 
   geom_point(color = col_trr266_nightblue) + 
   geom_linerange(aes(ymin = lb, ymax = ub)) +
-  labs(x = "", y = "Operating Cycle [days]") + 
+  labs(x = "", y = "Days Working Capital [days]") + 
   theme_minimal() 
 ```
 
@@ -109,7 +111,7 @@ this compare across the components of the operating cycle?
 
 ``` r
 df <- smp_win %>%
-  select(fyear, DPO = dpo, DIH = dio, DSO = dso) %>%
+  select(fyear, DPO = dpo, DIH = dih, DSO = dso) %>%
   group_by(fyear) %>%
   pivot_longer(cols = -fyear, names_to = "stat", values_to = "vals") %>%
   group_by(fyear, stat) %>%
@@ -123,7 +125,7 @@ ggplot(df, aes(x = fyear, y = mn, group = stat, color = stat)) +
   geom_point() + 
   geom_line() + 
   geom_linerange(aes(ymin = lb, ymax = ub)) +
-  labs(x = "", y = "Operating Cycle [days]", color = "") + 
+  labs(x = "", y = "Operating Cycle Component [days]", color = "") + 
   theme_minimal() +
   theme(legend.position = "bottom")
 ```
@@ -141,6 +143,7 @@ library(ExPanD)
 smp <- readRDS("data/generated/opcycle_sample.RDS")
 conf <- readRDS("data/external/expand_config.RDS")
 
+# This might take a while to start up because of the large sample
 ExPanD(
   smp, cs_id = c("gvkey", "conm"), ts_id = "fyear",
   config_list = conf,

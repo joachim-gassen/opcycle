@@ -51,9 +51,9 @@ smp <- base_sample %>%
   group_by(gvkey) %>%
   mutate(
     dpo = 365*(0.5*(mleadlag(ap, -1, fyear) + ap)/cogs),
-    dio = 365*(0.5*(mleadlag(invt, -1, fyear) + invt)/cogs),
+    dih = 365*(0.5*(mleadlag(invt, -1, fyear) + invt)/cogs),
     dso = 365*(0.5*(mleadlag(rect, -1, fyear) + rect)/sale),
-    opcycle = dio + dso - dpo,
+    dwc = dih + dso - dpo,
     eqratio = ceq/at,
     cashratio = che/at
   ) %>% 
@@ -61,14 +61,14 @@ smp <- base_sample %>%
   mutate(size = ntile(at, 10)) %>%
   ungroup() %>%
   filter(
-    !is.na(opcycle), ff12_ind != "Finance", 
+    !is.na(dwc), ff12_ind != "Finance", 
     fyear >= 2000, fyear <= 2020,
     !is.na(eqratio), !is.na(cashratio)
   ) %>%
   group_by(loc, fyear) %>% filter(n() > 100) %>% ungroup() %>%
   select(
     gvkey, conm, loc, ff12_ind, fyear,
-    dpo, dio, dso, opcycle, size, eqratio, cashratio
+    dpo, dih, dso, dwc, size, eqratio, cashratio
   )
 
 smp  %>%
@@ -80,19 +80,19 @@ if(nrow(dups) > 0) stop(
 )
 
 smp_win <- winsorize(smp)
-saveRDS(smp, "data/generated/opcycle_sample.RDS")
-saveRDS(smp_win, "data/generated/opcycle_sample_win.RDS")
+saveRDS(smp, "data/generated/opcycle_sample.rds")
+saveRDS(smp_win, "data/generated/opcycle_sample_win.rds")
 
-# Use the below to interactively explore the data. Takes a while to start up
+# Use the below to interactively explore the data
 
 if (FALSE) {
-  conf <- readRDS("data/external/expand_config.RDS")
+  conf <- readRDS("data/external/expand_config.rds")
+  # This might take a while to start up because of the large sample
   ExPanD(
     smp, cs_id = c("gvkey", "conm"), ts_id = "fyear",
     config_list = conf,
     title = "Operating Cycle of Publicly-Listed Firms"
   )
-  
 }
 
 
